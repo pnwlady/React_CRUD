@@ -39,8 +39,62 @@ gulp.task('browserify-vendor', function() {
   return browserify()
     .require(dependencies)
     .bundle()
-    .pipe(source('vendor .bundle.js'))
+    .pipe(source('vendor.bundle.js'))
     .pipe(buffer())
     .pipe(gulpif(production, uglify({ mangle: false })))
     .pipe(gulp.dest('public/js'));
 });
+
+//compile project files
+gulp.task('browserify', ['browserify-vendor'], function() {
+  return browserify({ entries: 'app/main.js', debug: true })
+    .external(dependencies)
+    .transform(babelify, { presets: ['es2015', 'react'] })
+    .bundle()
+    .pipe(source('bundle.js'))
+    .pipe(buffer())
+    .pipe(sourcemaps.init({ loadMaps: true }))
+    .pipe(gulpif(production, uglify({ mangle: false })))
+    .pipe(gulp.dest('public/js'));
+});
+
+//watching for project file changes and re-browserify
+gulp.task('browserify-watch', ['browserify-vendor'], function() {
+  var bundler = watchify(browserify({ entries: 'app/main.js', debug: true }, watchify.args));
+  bundler.external(dependencies);
+  bundler.transform(babelify, { presets: ['es2015', 'react']});
+  bundler.on('update', rebundle);
+  return rebundle();
+
+  function rebundle() {
+    var start = Date.now();
+    return bundler.bundle()
+      .on('error', function(err) {
+        gutil.log(gutil.colors.red(err.toString()));
+      })
+      .on('end', function() {
+        gutil.log(gutil.colors.green('Finished rebundling in', (Date.now() - start) + 'ms.'));
+      })
+      .pipe(source('bundle.js'))
+      .pipe(buffer())
+      .pipe(sourcemaps.init({ loadMaps: true }))
+      .pipe(gulp.dest('public/js/'));
+  }
+});
+
+//compile LESS sheets
+gulp.task('styles', function() {
+  return gulp.src('app/stylesheets/main.less')
+    .pipe(plumber())
+    .pipe(less())
+    .pipe(autoprefixer())
+    .pipe(gulpif(production, cssmin()))
+    .pipe(gulp.dest('public/css'));
+});
+
+gulp.task('watch', function() {
+  gulp.watch('app/stylesheets/**/*.less', ['styles']);
+});
+
+gulp.task('default', ['styles', 'vendor', 'browserify-watch', 'watch']);
+gulp.task('build', ['styles', 'vendor', 'browserify']);
