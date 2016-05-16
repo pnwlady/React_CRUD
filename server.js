@@ -12,6 +12,9 @@ var routes = require('./app/routes');
 var mongoose = require('mongoose');
 var Character = require('./models/character');
 var config = require('./config');
+var async = require('async');
+var request = require('request');
+var xml2js = require('xml2js');
 
 var app = express();
 
