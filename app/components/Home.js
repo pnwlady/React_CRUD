@@ -1,11 +1,11 @@
-import Reach from 'react';
+import React from 'react';
 
 class Home extends React.Component {
   render() {
     return (
-      <section className='alert alert-info'>
+      <div className='alert alert-info'>
         Hello from Home Component
-      </section>
+      </div>
     );
   }
 }
